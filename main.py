@@ -5,11 +5,11 @@ from OpenGL.GLUT import glutInit
 import sys
 import time
 
-from utils.textures import load_texture
+from utils.textures import load_texture, render_text
 from render.sprite import draw_sprite
 from render.map import draw_path
 from render.menu import Menu
-from render.hud import draw_hud, get_clicked_tower_type
+from render.hud import HUD, get_clicked_tower_type
 
 from game.path import path_points
 from game.balloon import Balloon
@@ -23,7 +23,7 @@ glutInit()
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
-WINDOW_TITLE = "Bloons Tower Defense - OpenGL"
+WINDOW_TITLE = "Fabão Balão"
 
 money = 25
 lives = 20
@@ -31,6 +31,26 @@ placing_tower = False
 preview_pos = None
 towers = []
 selected_tower_type = None
+
+def show_game_over():
+    message = "FIM DE JOGO!"
+    font_size = 48
+    text_x = 200
+    text_y = 300
+
+    glColor4f(0, 0, 0, 0.7)
+    glBegin(GL_QUADS)
+    glVertex2f(100, text_y - 20)
+    glVertex2f(700, text_y - 20)
+    glVertex2f(700, text_y + 60)
+    glVertex2f(100, text_y + 60)
+    glEnd()
+
+    glColor3f(0, 0, 0)
+    render_text(message, text_x + 2, text_y + 2, size=font_size)
+
+    glColor3f(1, 0.2, 0.2)
+    render_text(message, text_x, text_y, size=font_size)
 
 
 def is_on_path(x, y):
@@ -60,6 +80,10 @@ def init_window():
     glMatrixMode(GL_MODELVIEW)
 
     glEnable(GL_BLEND)
+    glEnable(GL_LINE_SMOOTH)
+    glHint(GL_LINE_SMOOTH_HINT, GL_NICEST)
+    glEnable(GL_POLYGON_SMOOTH)
+    glHint(GL_POLYGON_SMOOTH_HINT, GL_NICEST)
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
     return window
@@ -70,7 +94,6 @@ def main_loop(window, map_texture):
 
     main_loop.mouse_released = True
 
-    # Carrega texturas após OpenGL estar ativo
     load_balloon_textures()
     load_tower_textures()
 
@@ -87,7 +110,7 @@ def main_loop(window, map_texture):
         glClear(GL_COLOR_BUFFER_BIT)
 
         draw_sprite(map_texture, 0, 0, 800, 600)
-        draw_hud(selected_tower_type, money)
+        hud.draw(selected_tower_type, money)
 
         if wave_manager.can_start_next_wave(balloons):
             wave_manager.start_wave()
@@ -104,7 +127,9 @@ def main_loop(window, map_texture):
                 balloon.alive = False
                 print(f"❌ Balão escapou! Vidas restantes: {lives}")
                 if lives <= 0:
-                    print("🏳️ Fim de jogo!")
+                    show_game_over()
+                    glfw.swap_buffers(window)  # garante renderização do texto
+                    time.sleep(3)              # exibe por 3 segundos
                     glfw.set_window_should_close(window, True)
 
         for balloon in balloons:
@@ -169,12 +194,18 @@ def main_loop(window, map_texture):
 if __name__ == "__main__":
     window = init_window()
 
-    # Executar o menu antes de iniciar o jogo
     menu = Menu()
     selected_map_path = menu.run(window)
 
-    # Usar o mapa escolhido no jogo
-    map_texture, _, _ = load_texture(selected_map_path)
+    glMatrixMode(GL_PROJECTION)
+    glLoadIdentity()
+    gluOrtho2D(0, WINDOW_WIDTH, WINDOW_HEIGHT, 0)
+    glMatrixMode(GL_MODELVIEW)
+    glLoadIdentity()
 
-    # Começar o jogo
+    map_texture, _, _ = load_texture(selected_map_path)
+    coin_texture_id, _, _ = load_texture("assets/img/ui/coin.png")
+    hud = HUD(coin_texture_id)
+
+
     main_loop(window, map_texture)
