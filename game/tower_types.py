@@ -1,26 +1,25 @@
 from utils.textures import load_texture
 
 TOWER_TYPES = {
-    "basic": {
-        "texture_path": "assets/img/monkeys/monkey1.png",
+    "vasco": {
+        "texture_path": "assets/img/monkeys/vasco.png",
         "range": 150,
         "cooldown": 1.0,
         "cost": 25
     },
-    "sniper": {
-        "texture_path": "assets/img/monkeys/sniper.png",
+    "botafogo": {
+        "texture_path": "assets/img/monkeys/botafogo.png",
+        "range": 150,
+        "cooldown": 0.5,
+        "cost": 35
+    },
+    "flamengo": {
+        "texture_path": "assets/img/monkeys/flamengo.png",
         "range": 300,
         "cooldown": 2.0,
         "cost": 40
     }
 }
-#     "rapid": {
-#         "texture_path": "assets/img/monkeys/monkey3.png",
-#         "range": 120,
-#         "cooldown": 0.4,
-#         "cost": 30
-#     }
-# }
 
 def load_tower_textures():
     for tower_id, props in TOWER_TYPES.items():
