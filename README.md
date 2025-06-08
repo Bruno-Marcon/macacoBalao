@@ -11,7 +11,7 @@ Esse é um projeto pessoal de um jogo estilo **Bloons Tower Defense** feito com 
 * Interface com gráficos em OpenGL
 * Sistema de *waves* com balões que ficam mais difíceis com o tempo
 * Várias torres diferentes, cada uma com seu alcance, dano e tempo de recarga
-* Balões com diferentes aparências, velocidades e quantidade de vida (via spritesheet)
+* Balões com diferentes aparências, velocidades e quantidade de vida
 * Sistema de dinheiro: ganha ao estourar balões e gasta ao colocar torres
 * Perda de vidas se balões chegarem até o fim do trajeto
 * HUD interativo para escolher e posicionar torres com o mouse
