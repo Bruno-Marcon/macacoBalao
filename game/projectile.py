@@ -1,9 +1,8 @@
 import math
 from OpenGL.GL import *
 
-
 class Projectile:
-    def __init__(self, x, y, target, speed=500):
+    def __init__(self, x, y, target, speed=800):
         self.x = x
         self.y = y
         dx = target.x - x
@@ -14,8 +13,8 @@ class Projectile:
         self.alive = True
 
     def update(self):
-        self.x += self.vx * 0.016
-        self.y += self.vy * 0.016
+        self.x += self.vx * 0.03
+        self.y += self.vy * 0.03
 
     def draw(self):
         if not self.alive:
@@ -37,4 +36,4 @@ class Projectile:
         dx = balloon.x - self.x
         dy = balloon.y - self.y
         distance = math.hypot(dx, dy)
-        return distance < 20  # raio aproximado do balão
+        return distance < 20

@@ -1,26 +1,44 @@
-# main.py
 import glfw
 from OpenGL.GL import *
 from OpenGL.GLU import *
-from PIL import Image
+from OpenGL.GLUT import glutInit
 import sys
 import time
 
 from utils.textures import load_texture
 from render.sprite import draw_sprite
 from render.map import draw_path
+from render.menu import Menu
+from render.hud import draw_hud, get_clicked_tower_type
 
 from game.path import path_points
 from game.balloon import Balloon
 from game.tower import Tower
+from game.wave_manager import WaveManager
+from game.waves import waves
+from game.balloon_types import load_balloon_textures
+from game.tower_types import TOWER_TYPES, load_tower_textures
+
+glutInit()
 
 WINDOW_WIDTH = 800
 WINDOW_HEIGHT = 600
 WINDOW_TITLE = "Bloons Tower Defense - OpenGL"
 
-# ✅ Estados globais
-money = 0
+money = 25
 lives = 20
+placing_tower = False
+preview_pos = None
+towers = []
+selected_tower_type = None
+
+
+def is_on_path(x, y):
+    for px, py in path_points:
+        if abs(x - px) < 25 and abs(y - py) < 25:
+            return True
+    return False
+
 
 def init_window():
     if not glfw.init():
@@ -46,16 +64,18 @@ def init_window():
 
     return window
 
-def main_loop(window):
-    global money, lives
 
-    map_texture, _, _ = load_texture("assets/img/map.png")
-    balloon_texture, bw, bh = load_texture("assets/img/enemies.png")
-    tower_texture, tw, th = load_texture("assets/img/monkey1.png")
+def main_loop(window, map_texture):
+    global money, lives, placing_tower, preview_pos, selected_tower_type
 
-    balloons = [Balloon(balloon_texture, bw, bh, path_points)]
-    # tower = Tower(300, 300, tower_texture, tw, th)
+    main_loop.mouse_released = True
 
+    # Carrega texturas após OpenGL estar ativo
+    load_balloon_textures()
+    load_tower_textures()
+
+    wave_manager = WaveManager(path_points, waves)
+    balloons = []
     last_time = time.time()
 
     while not glfw.window_should_close(window):
@@ -67,36 +87,94 @@ def main_loop(window):
         glClear(GL_COLOR_BUFFER_BIT)
 
         draw_sprite(map_texture, 0, 0, 800, 600)
-        draw_path(path_points, size=40)
+        draw_hud(selected_tower_type, money)
+
+        if wave_manager.can_start_next_wave(balloons):
+            wave_manager.start_wave()
+
+        new_balloons = wave_manager.update(dt)
+        balloons.extend(new_balloons)
 
         for balloon in balloons:
             if not balloon.finished:
                 balloon.update(dt)
                 balloon.draw(draw_sprite)
-            else:
-                if balloon.alive:
-                    lives -= 1
-                    balloon.alive = False
-                    print(f"❌ Balão escapou! Vidas restantes: {lives}")
-                    if lives <= 0:
-                        print("🏳️ Fim de jogo!")
-                        glfw.set_window_should_close(window, True)
+            elif balloon.alive:
+                lives -= 1
+                balloon.alive = False
+                print(f"❌ Balão escapou! Vidas restantes: {lives}")
+                if lives <= 0:
+                    print("🏳️ Fim de jogo!")
+                    glfw.set_window_should_close(window, True)
 
-        # Verifica balões destruídos
         for balloon in balloons:
-            if not balloon.alive and not balloon.finished:
-                money += 5  # valor de recompensa
-                balloon.finished = True
+            if not balloon.alive and not balloon.was_counted:
+                money += 2
+                balloon.was_counted = True
                 print(f"💰 Balão destruído! Dinheiro: ${money}")
 
-        # tower.update(balloons, current_time)
-        # tower.draw(draw_sprite)
+        for tower in towers:
+            tower.update(balloons, current_time)
+            tower.draw(draw_sprite)
+
+        if placing_tower and preview_pos and selected_tower_type:
+            x, y = preview_pos
+            props = TOWER_TYPES[selected_tower_type]
+            glColor4f(1, 1, 1, 0.5)
+            draw_sprite(props["texture_id"], x - props["width"] // 2, y - props["height"] // 2, props["width"], props["height"])
+            glColor4f(1, 1, 1, 1)
+
+        if glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_LEFT) == glfw.RELEASE:
+            main_loop.mouse_released = True
+
+        elif glfw.get_mouse_button(window, glfw.MOUSE_BUTTON_LEFT) == glfw.PRESS and main_loop.mouse_released:
+            main_loop.mouse_released = False
+            x, y = glfw.get_cursor_pos(window)
+            x, y = int(x), int(y)
+
+            if placing_tower and selected_tower_type:
+                if not is_on_path(x, y):
+                    props = TOWER_TYPES[selected_tower_type]
+                    if money >= props["cost"]:
+                        towers.append(Tower(
+                            x - props["width"] // 2, y - props["height"] // 2,
+                            props["texture_id"], props["width"], props["height"],
+                            range_radius=props["range"], cooldown=props["cooldown"]
+                        ))
+                        money -= props["cost"]
+                        print(f"📍 Torre {selected_tower_type} posicionada | Dinheiro restante: ${money}")
+                    else:
+                        print("❌ Dinheiro insuficiente!")
+                    placing_tower = False
+                    preview_pos = None
+                else:
+                    print("🚫 Não pode posicionar sobre o caminho!")
+            else:
+                clicked_type = get_clicked_tower_type(x, y)
+                if clicked_type:
+                    selected_tower_type = clicked_type
+                    placing_tower = True
+                    print(f"🛠️ Selecionou torre: {selected_tower_type}")
+
+        if placing_tower:
+            px, py = glfw.get_cursor_pos(window)
+            preview_pos = (int(px), int(py))
 
         glfw.swap_buffers(window)
         glfw.poll_events()
 
     glfw.terminate()
 
+
 if __name__ == "__main__":
     window = init_window()
-    main_loop(window)
+
+    # Executar o menu antes de iniciar o jogo
+    menu = Menu()
+    selected_map_path = menu.run(window)
+
+    # Usar o mapa escolhido no jogo
+    map_texture, _, _ = load_texture(selected_map_path)
+
+    # Começar o jogo
+    main_loop(window, map_texture)
