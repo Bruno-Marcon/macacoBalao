@@ -4,6 +4,7 @@ from OpenGL.GLU import *
 from OpenGL.GLUT import glutInit
 import sys
 import time
+import importlib  # 🔹 Importação dinâmica
 
 from utils.textures import load_texture, render_text
 from render.sprite import draw_sprite
@@ -11,7 +12,6 @@ from render.map import draw_path
 from render.menu import Menu
 from render.hud import HUD, get_clicked_tower_type
 
-from game.path import path_points
 from game.balloon import Balloon
 from game.tower import Tower
 from game.wave_manager import WaveManager
@@ -31,6 +31,9 @@ placing_tower = False
 preview_pos = None
 towers = []
 selected_tower_type = None
+
+path_points = []  # 🔹 Definido depois do menu
+
 
 def show_game_over():
     message = "FIM DE JOGO!"
@@ -128,8 +131,8 @@ def main_loop(window, map_texture):
                 print(f"❌ Balão escapou! Vidas restantes: {lives}")
                 if lives <= 0:
                     show_game_over()
-                    glfw.swap_buffers(window)  # garante renderização do texto
-                    time.sleep(3)              # exibe por 3 segundos
+                    glfw.swap_buffers(window)
+                    time.sleep(3)
                     glfw.set_window_should_close(window, True)
 
         for balloon in balloons:
@@ -195,7 +198,16 @@ if __name__ == "__main__":
     window = init_window()
 
     menu = Menu()
-    selected_map_path = menu.run(window)
+    selected_map = menu.run(window)
+
+    if selected_map["key"] == "ice":
+        path_module = importlib.import_module("game.path_ice")
+    elif selected_map["key"] == "estadio":
+        path_module = importlib.import_module("game.path_estadio")
+    else:
+        raise ValueError("Mapa desconhecido.")
+
+    path_points = path_module.path_points
 
     glMatrixMode(GL_PROJECTION)
     glLoadIdentity()
@@ -203,9 +215,8 @@ if __name__ == "__main__":
     glMatrixMode(GL_MODELVIEW)
     glLoadIdentity()
 
-    map_texture, _, _ = load_texture(selected_map_path)
+    map_texture, _, _ = load_texture(selected_map["path"])
     coin_texture_id, _, _ = load_texture("assets/img/ui/coin.png")
     hud = HUD(coin_texture_id)
-
 
     main_loop(window, map_texture)

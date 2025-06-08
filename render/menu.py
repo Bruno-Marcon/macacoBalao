@@ -10,15 +10,15 @@ class Menu:
         self.window_height = window_height
 
         self.maps = [
-            {"name": "Ice Map", "path": "assets/img/maps/mapIce.png"},
-            {"name": "Grass Map", "path": "assets/img/maps/mapGrass.png"},
+            {"name": "Ice Map", "path": "assets/img/maps/mapIce.png", "key": "ice"},
+            {"name": "Grass Map", "path": "assets/img/maps/estadio.png", "key": "estadio"},
         ]
         self.selected_map = None
-        self.loaded_textures = []
+        self.loaded_textures = []  # ✅ Corrigido: inicializa antes de usar
 
         for m in self.maps:
             tex_id, w, h = load_texture(m["path"])
-            self.loaded_textures.append((tex_id, w, h))
+            self.loaded_textures.append((tex_id, w, h))  # ✅ Agora isso funciona
 
         self.quit_button = {"x": self.window_width - 120, "y": 20, "w": 100, "h": 40}
 
@@ -40,7 +40,13 @@ class Menu:
                 draw_sprite(tex_id, x, y, 200, 200)
                 render_text(self.maps[i]["name"], x + 50, y + 220, size=18)
 
-            self.draw_button(self.quit_button["x"], self.quit_button["y"], self.quit_button["w"], self.quit_button["h"], "Sair")
+            self.draw_button(
+                self.quit_button["x"],
+                self.quit_button["y"],
+                self.quit_button["w"],
+                self.quit_button["h"],
+                "Sair"
+            )
 
             glfw.swap_buffers(window)
             glfw.poll_events()
@@ -52,7 +58,7 @@ class Menu:
                     bx = start_x + i * 240
                     by = 150
                     if bx <= x <= bx + 200 and by <= y <= by + 200:
-                        self.selected_map = self.maps[i]["path"]
+                        self.selected_map = self.maps[i]  # ✅ Retorna o dicionário inteiro
                         print(f"🗺️ Mapa selecionado: {self.maps[i]['name']}")
                         return self.selected_map
 

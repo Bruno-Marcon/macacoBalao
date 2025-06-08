@@ -35,7 +35,6 @@ class Tower:
                 self.last_shot_time = now
                 break
 
-        # Atualiza projéteis
         for proj in self.projectiles:
             proj.update()
 
@@ -43,7 +42,6 @@ class Tower:
                 if proj.alive and proj.check_collision(balloon):
                     balloon.hit()
                     proj.alive = False
-        # Remove projéteis que saíram da tela
         self.projectiles = [p for p in self.projectiles if p.alive and not p.offscreen()]
 
     def shoot(self, target):
